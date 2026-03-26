@@ -1,12 +1,19 @@
-# preJS minimum template
+# Geo Buffer Export - 国バッファ描画ツール
 
-preJSプロジェクトのミニマムテンプレート
+地図上の国をクリックして選択し、turf.buffer() でバッファを生成・描画するツール。
+
+## 機能
+
+- 国クリックで選択・ハイライト表示
+- 選択した国のジオメトリにバッファを適用して描画
+- 同じ国に異なる距離で複数バッファを追加可能
+- 緯度・経度のセンタリング機能
+- 複数の投影法に対応（Natural Earth、メルカトル、正射図法など）
+- SVG / PNG エクスポート
 
 ## インストール
 
 ```bash
-git clone git@github.com:shimizu/prejs-minimum-template.git
-cd prejs-minimum-template
 npm install
 ```
 
@@ -33,6 +40,3 @@ npm run preview
 ```bash
 npm run deploy
 ```
-
-
-
