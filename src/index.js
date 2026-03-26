@@ -324,7 +324,7 @@ function setupInteraction(map, projection) {
 
     // 重複チェック（同じ国かつ同じ距離の場合のみ拒否）
     const key = getCountryKey(feature);
-    const bufferDistance = parseFloat(radiusInput.value) || 500;
+    const bufferDistance = parseFloat(radiusInput.value) || 4000;
     if (state.selectedCountries.some(c => c.countryKey === key && c.bufferDistance === bufferDistance)) return;
     const bufferGeoJSON = createCountryBuffer(feature, bufferDistance);
     state.selectedCountries.push({
