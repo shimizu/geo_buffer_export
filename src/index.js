@@ -322,12 +322,10 @@ function setupInteraction(map, projection) {
     const feature = findCountryAtPoint(coords);
     if (!feature) return; // 海上クリックは無視
 
-    // 重複チェック
+    // 重複チェック（同じ国かつ同じ距離の場合のみ拒否）
     const key = getCountryKey(feature);
-    if (state.selectedCountries.some(c => c.countryKey === key)) return;
-
-    // バッファ生成・state追加
     const bufferDistance = parseFloat(radiusInput.value) || 500;
+    if (state.selectedCountries.some(c => c.countryKey === key && c.bufferDistance === bufferDistance)) return;
     const bufferGeoJSON = createCountryBuffer(feature, bufferDistance);
     state.selectedCountries.push({
       countryKey: key,
