@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geo Circle Export - 地理的円描画ツール</title>
+    <title>Geo Buffer Export - 国バッファ描画ツール</title>
 </head>
 <body>
     <div id="map"></div>
@@ -24,14 +24,14 @@
             <option value="conicEqualArea">円錐等積図法</option>
         </select>
 
-        <label for="radius-input">円の半径 (km)</label>
-        <input type="number" id="radius-input" value="4000" min="1" max="20000" step="50">
+        <label for="radius-input">バッファ距離 (km)</label>
+        <input type="number" id="radius-input" value="500" min="1" max="20000" step="50">
 
-        <p class="hint">地図をクリックして円を配置</p>
+        <p class="hint">地図をクリックして国を選択</p>
 
         <div id="circle-list"></div>
 
-        <button id="clear-circles" class="btn btn-danger">円をクリア</button>
+        <button id="clear-circles" class="btn btn-danger">選択をクリア</button>
 
         <h3>エクスポート</h3>
         <button id="save-svg" class="btn">SVGダウンロード</button>
@@ -48,7 +48,7 @@
         <ul class="operation-list">
             <li>
                 <span class="operation-icon text-icon">L</span>
-                <span>左クリックで円を配置</span>
+                <span>左クリックで国を選択</span>
             </li>
             <li>
                 <span class="operation-icon text-icon">L+</span>
@@ -62,20 +62,11 @@
                 <span class="operation-icon text-icon">W</span>
                 <span>ホイールでズーム</span>
             </li>
-            <li>
-                <span class="operation-icon image-icon"><img src="./icon/lat.png" alt="" /></span>
-                <span>その円の中心に緯度を合わせる</span>
-            </li>
-            <li>
-                <span class="operation-icon image-icon"><img src="./icon/lng.png" alt="" /></span>
-                <span>その円の中心に経度を合わせる</span>
-            </li>
         </ul>
 
-        <h3>円の計算方法</h3>
-        <p>円は平面ではなく、地球を球体とみなした球面上で計算しています。</p>
-        <p>指定した半径 km を角距離に変換し、<code>d3.geoCircle()</code> で中心点から等距離の輪郭を生成します。</p>
-        <p class="formula">角距離 (deg) = 半径 (km) × 180 / (π × 6371.0088)</p>
+        <h3>バッファの計算方法</h3>
+        <p>選択した国のジオメトリに対して <code>turf.buffer()</code> で指定距離のバッファを生成します。</p>
+        <p>バッファ距離を変更したい場合は、対象の国を削除してから再選択してください。</p>
     </aside>
 
     <script type="module" src="/index.js"></script>

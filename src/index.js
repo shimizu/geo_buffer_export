@@ -1,19 +1,18 @@
 import './index.scss';
 import * as d3 from 'd3';
+import * as turf from '@turf/turf';
 import { Map as ThematikaMap, GeojsonLayer, GraticuleLayer, OutlineLayer } from 'd3-thematika';
 
 // --- 状態管理 ---
 const state = {
   geojson: null,
   projectionType: 'naturalEarth',
-  circles: [],       // { center: [lng, lat], radiusKm: number }
-  map: null,         // ThematikaMap instance
-  rotation: [0, 0, 0],  // [lambda, phi, gamma]
+  selectedCountries: [],  // { countryKey, feature, isoA3, name, nameJa, bufferDistance, bufferGeoJSON }
+  map: null,              // ThematikaMap instance
+  rotation: [0, 0, 0],   // [lambda, phi, gamma]
   scale: 1,
   translate: [0, 0],
 };
-
-const EARTH_RADIUS_KM = 6371.0088;
 
 // --- 投影法マップ ---
 const projectionFactories = {
@@ -38,58 +37,64 @@ const circleListEl = document.getElementById('circle-list');
 const circleInfoEl = document.getElementById('circle-info');
 const closeCircleInfoBtn = document.getElementById('close-circle-info');
 
-// --- 大圏円GeoJSON生成 ---
-function createGeoCircle(center, radiusKm) {
-  const radiusDeg = radiusKm * 180 / (Math.PI * EARTH_RADIUS_KM);
-  return d3.geoCircle()
-    .center(center)
-    .radius(radiusDeg)
-    .precision(2)();
+// --- 国の一意キーを返す ---
+function getCountryKey(feature) {
+  const iso = feature.properties.ISO_A3;
+  return iso && iso !== '-99' ? iso : feature.properties.NAME;
 }
 
-// --- 円リストUI更新 ---
-function updateCircleList() {
+// --- クリック地点の国を特定 ---
+function findCountryAtPoint(lngLat) {
+  const point = turf.point(lngLat);
+  for (const feature of state.geojson.features) {
+    if (turf.booleanPointInPolygon(point, feature)) return feature;
+  }
+  return null;
+}
+
+// --- バッファGeoJSON生成 ---
+function createCountryBuffer(feature, distanceKm) {
+  return turf.buffer(feature, distanceKm, { units: 'kilometers' });
+}
+
+// --- 国リストUI更新 ---
+function updateCountryList() {
   circleListEl.innerHTML = '';
-  state.circles.forEach((c, i) => {
+  state.selectedCountries.forEach((c, i) => {
     const item = document.createElement('div');
     item.className = 'circle-item';
+    const label = c.nameJa || c.name || c.isoA3;
     item.innerHTML = `
-      <span class="circle-label">${c.center[1].toFixed(1)}, ${c.center[0].toFixed(1)} / ${c.radiusKm}km</span>
+      <span class="circle-label">${label} (${c.isoA3}) / ${c.bufferDistance}km</span>
       <span class="circle-actions">
-        <button type="button" class="align-circle" data-axis="lat" data-index="${i}" aria-label="その円の中心に緯度を合わせる">
+        <button type="button" class="align-circle" data-axis="lat" data-index="${i}" aria-label="その国の重心に緯度を合わせる">
           <img src="./icon/lat.png" alt="" />
         </button>
-        <button type="button" class="align-circle" data-axis="lng" data-index="${i}" aria-label="その円の中心に経度を合わせる">
+        <button type="button" class="align-circle" data-axis="lng" data-index="${i}" aria-label="その国の重心に経度を合わせる">
           <img src="./icon/lng.png" alt="" />
         </button>
-        <button type="button" class="remove-circle" data-index="${i}" aria-label="円を削除">&times;</button>
+        <button type="button" class="remove-circle" data-index="${i}" aria-label="国を削除">&times;</button>
       </span>
     `;
     circleListEl.appendChild(item);
   });
 
-  // 円アイテムの操作ボタン
+  // 緯度・経度合わせボタン
   circleListEl.querySelectorAll('.align-circle').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const idx = parseInt(e.currentTarget.dataset.index, 10);
       const axis = e.currentTarget.dataset.axis;
-      const c = state.circles[idx];
-
+      const c = state.selectedCountries[idx];
       if (!c) return;
 
+      const centroid = turf.centroid(c.feature);
+      const [lng, lat] = centroid.geometry.coordinates;
+
       if (axis === 'lat') {
-        state.rotation = [
-          state.rotation[0],
-          -c.center[1],
-          state.rotation[2],
-        ];
+        state.rotation = [state.rotation[0], -lat, state.rotation[2]];
       } else if (axis === 'lng') {
-        state.rotation = [
-          -c.center[0],
-          state.rotation[1],
-          state.rotation[2],
-        ];
+        state.rotation = [-lng, state.rotation[1], state.rotation[2]];
       }
 
       state.translate = [0, 0];
@@ -97,12 +102,12 @@ function updateCircleList() {
     });
   });
 
-  // 削除ボタン（イベント伝播を止めて親のクリックを防ぐ）
+  // 削除ボタン
   circleListEl.querySelectorAll('.remove-circle').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const idx = parseInt(e.currentTarget.dataset.index, 10);
-      state.circles.splice(idx, 1);
+      state.selectedCountries.splice(idx, 1);
       draw();
     });
   });
@@ -189,56 +194,41 @@ function draw() {
   });
   map.addLayer('graticule', graticule);
 
+  // 選択済み国のキーセット
+  const selectedKeySet = new Set(state.selectedCountries.map(c => c.countryKey));
+
   const countries = new GeojsonLayer({
     data: state.geojson,
     attr: {
-      fill: '#c8dbbe',
+      fill: (d) => selectedKeySet.has(getCountryKey(d)) ? '#f4a460' : '#c8dbbe',
       stroke: '#888',
       'stroke-width': 0.5,
     },
   });
   map.addLayer('countries', countries);
 
-  // 円レイヤー
-  if (state.circles.length > 0) {
-    const circleFeatures = state.circles.map(c => {
-      const feature = createGeoCircle(c.center, c.radiusKm);
-      return {
-        type: 'Feature',
-        geometry: feature,
-        properties: { center: c.center, radiusKm: c.radiusKm },
-      };
-    });
+  // バッファレイヤー
+  if (state.selectedCountries.length > 0) {
+    const bufferFeatures = state.selectedCountries
+      .map(c => c.bufferGeoJSON)
+      .filter(Boolean);
 
-    const circleLayer = new GeojsonLayer({
-      data: { type: 'FeatureCollection', features: circleFeatures },
-      attr: {
-        fill: 'rgba(74, 144, 217, 0.25)',
-        stroke: '#4a90d9',
-        'stroke-width': 1.5,
-        'stroke-dasharray': '4,2',
-      },
-    });
-    map.addLayer('circles', circleLayer);
-
-    // 中心マーカー
-    const g = svg.select('g');
-    state.circles.forEach(c => {
-      const [x, y] = projection(c.center);
-      if (x != null && y != null) {
-        g.append('circle')
-          .attr('cx', x)
-          .attr('cy', y)
-          .attr('r', 4)
-          .attr('fill', '#e63946')
-          .attr('stroke', '#fff')
-          .attr('stroke-width', 1.5);
-      }
-    });
+    if (bufferFeatures.length > 0) {
+      const bufferLayer = new GeojsonLayer({
+        data: { type: 'FeatureCollection', features: bufferFeatures },
+        attr: {
+          fill: 'rgba(74, 144, 217, 0.25)',
+          stroke: '#4a90d9',
+          'stroke-width': 1.5,
+          'stroke-dasharray': '4,2',
+        },
+      });
+      map.addLayer('buffers', bufferLayer);
+    }
   }
 
-  // 円リストUI更新
-  updateCircleList();
+  // 国リストUI更新
+  updateCountryList();
 
   // インタラクション設定
   setupInteraction(map, projection);
@@ -317,7 +307,7 @@ function setupInteraction(map, projection) {
     scheduleDraw();
   }, { passive: false });
 
-  // クリックで円配置（ドラッグでなかった場合のみ）
+  // クリックで国選択（ドラッグでなかった場合のみ）
   svg.on('click', (event) => {
     if (event.button !== 0) return;
     if (isDragging) {
@@ -328,8 +318,26 @@ function setupInteraction(map, projection) {
     const coords = getPointerCoords(event, projection);
     if (!coords) return;
 
-    const radiusKm = parseFloat(radiusInput.value) || 4000;
-    state.circles.push({ center: coords, radiusKm });
+    // クリック地点の国を特定
+    const feature = findCountryAtPoint(coords);
+    if (!feature) return; // 海上クリックは無視
+
+    // 重複チェック
+    const key = getCountryKey(feature);
+    if (state.selectedCountries.some(c => c.countryKey === key)) return;
+
+    // バッファ生成・state追加
+    const bufferDistance = parseFloat(radiusInput.value) || 500;
+    const bufferGeoJSON = createCountryBuffer(feature, bufferDistance);
+    state.selectedCountries.push({
+      countryKey: key,
+      feature,
+      isoA3: feature.properties.ISO_A3,
+      name: feature.properties.NAME,
+      nameJa: feature.properties.NAME_JA,
+      bufferDistance,
+      bufferGeoJSON,
+    });
     draw();
   });
 
@@ -360,7 +368,7 @@ resetRotationBtn.addEventListener('click', () => {
 });
 
 clearBtn.addEventListener('click', () => {
-  state.circles = [];
+  state.selectedCountries = [];
   draw();
 });
 
