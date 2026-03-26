@@ -29,13 +29,13 @@ const mapContainer = document.getElementById('map');
 const projSelect = document.getElementById('projection-select');
 const resetRotationBtn = document.getElementById('reset-rotation');
 const radiusInput = document.getElementById('radius-input');
-const clearBtn = document.getElementById('clear-circles');
+const clearBtn = document.getElementById('clear-buffers');
 const saveSvgBtn = document.getElementById('save-svg');
 const savePngBtn = document.getElementById('save-png');
 const coordsDisplay = document.getElementById('coords');
-const circleListEl = document.getElementById('circle-list');
-const circleInfoEl = document.getElementById('circle-info');
-const closeCircleInfoBtn = document.getElementById('close-circle-info');
+const bufferListEl = document.getElementById('buffer-list');
+const bufferInfoEl = document.getElementById('buffer-info');
+const closeBufferInfoBtn = document.getElementById('close-buffer-info');
 
 // --- 国の一意キーを返す ---
 function getCountryKey(feature) {
@@ -59,28 +59,28 @@ function createCountryBuffer(feature, distanceKm) {
 
 // --- 国リストUI更新 ---
 function updateCountryList() {
-  circleListEl.innerHTML = '';
+  bufferListEl.innerHTML = '';
   state.selectedCountries.forEach((c, i) => {
     const item = document.createElement('div');
-    item.className = 'circle-item';
+    item.className = 'buffer-item';
     const label = c.nameJa || c.name || c.isoA3;
     item.innerHTML = `
-      <span class="circle-label">${label} (${c.isoA3}) / ${c.bufferDistance}km</span>
-      <span class="circle-actions">
-        <button type="button" class="align-circle" data-axis="lat" data-index="${i}" aria-label="その国の重心に緯度を合わせる">
+      <span class="buffer-label">${label} (${c.isoA3}) / ${c.bufferDistance}km</span>
+      <span class="buffer-actions">
+        <button type="button" class="align-buffer" data-axis="lat" data-index="${i}" aria-label="その国の重心に緯度を合わせる">
           <img src="./icon/lat.png" alt="" />
         </button>
-        <button type="button" class="align-circle" data-axis="lng" data-index="${i}" aria-label="その国の重心に経度を合わせる">
+        <button type="button" class="align-buffer" data-axis="lng" data-index="${i}" aria-label="その国の重心に経度を合わせる">
           <img src="./icon/lng.png" alt="" />
         </button>
-        <button type="button" class="remove-circle" data-index="${i}" aria-label="国を削除">&times;</button>
+        <button type="button" class="remove-buffer" data-index="${i}" aria-label="国を削除">&times;</button>
       </span>
     `;
-    circleListEl.appendChild(item);
+    bufferListEl.appendChild(item);
   });
 
   // 緯度・経度合わせボタン
-  circleListEl.querySelectorAll('.align-circle').forEach(btn => {
+  bufferListEl.querySelectorAll('.align-buffer').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const idx = parseInt(e.currentTarget.dataset.index, 10);
@@ -103,7 +103,7 @@ function updateCountryList() {
   });
 
   // 削除ボタン
-  circleListEl.querySelectorAll('.remove-circle').forEach(btn => {
+  bufferListEl.querySelectorAll('.remove-buffer').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const idx = parseInt(e.currentTarget.dataset.index, 10);
@@ -339,13 +339,16 @@ function setupInteraction(map, projection) {
     draw();
   });
 
-  // マウス移動で座標表示
+  // マウス移動で座標表示 + カーソル変更
   svg.on('mousemove', (event) => {
     const coords = getPointerCoords(event, projection);
     if (coords) {
       coordsDisplay.textContent = `緯度: ${coords[1].toFixed(2)}  経度: ${coords[0].toFixed(2)}`;
+      const country = findCountryAtPoint(coords);
+      svg.style('cursor', country ? 'pointer' : 'grab');
     } else {
       coordsDisplay.textContent = '緯度: --  経度: --';
+      svg.style('cursor', 'grab');
     }
   });
 }
@@ -378,8 +381,8 @@ savePngBtn.addEventListener('click', () => {
   if (state.map) state.map.savePNG('map');
 });
 
-closeCircleInfoBtn.addEventListener('click', () => {
-  circleInfoEl.hidden = true;
+closeBufferInfoBtn.addEventListener('click', () => {
+  bufferInfoEl.hidden = true;
 });
 
 // ウィンドウリサイズ対応
