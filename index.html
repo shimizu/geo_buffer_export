@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geo Buffer Export - 国バッファ描画ツール</title>
+  <script type="module" crossorigin src="./assets/index-7SAzaNvE.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-B3WNvDgn.css">
+  <script type="module">import'data:text/javascript,if(!import.meta.resolve)throw Error("import.meta.resolve not supported")';import.meta.url;import("_").catch(()=>1);(async function*(){})().next();window.__vite_is_modern_browser=true</script>
+  <script type="module">!function(){if(window.__vite_is_modern_browser)return;console.warn("vite: loading legacy chunks, syntax error above and the same error below should be ignored");var e=document.getElementById("vite-legacy-polyfill"),n=document.createElement("script");n.src=e.src,n.onload=function(){System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))},document.body.appendChild(n)}();</script>
+</head>
+<body>
+    <div id="map"></div>
+
+    <div id="controls">
+        <h3>地図設定</h3>
+
+        <div class="field-header">
+            <label for="projection-select">投影法</label>
+            <button id="reset-rotation" type="button" class="icon-text-btn">reset</button>
+        </div>
+        <select id="projection-select">
+            <option value="naturalEarth" selected>Natural Earth</option>
+            <option value="mercator">メルカトル</option>
+            <option value="orthographic">正射図法</option>
+            <option value="equirectangular">正距円筒図法</option>
+            <option value="azimuthalEqualArea">方位等積図法</option>
+            <option value="conicEqualArea">円錐等積図法</option>
+        </select>
+
+        <label for="radius-input">バッファ距離 (km)</label>
+        <input type="number" id="radius-input" value="4000" min="1" max="20000" step="50">
+
+        <p class="hint">地図をクリックして国を選択</p>
+
+        <div id="buffer-list"></div>
+
+        <button id="clear-buffers" class="btn btn-danger">選択をクリア</button>
+
+        <h3>エクスポート</h3>
+        <button id="save-svg" class="btn">SVGダウンロード</button>
+        <button id="save-png" class="btn">PNGダウンロード</button>
+    </div>
+
+    <div id="coords">緯度: -- 経度: --</div>
+
+    <aside id="buffer-info">
+        <div class="panel-header">
+            <h3>操作方法</h3>
+            <button id="close-buffer-info" type="button" aria-label="説明を閉じる">&times;</button>
+        </div>
+        <ul class="operation-list">
+            <li>
+                <span class="operation-icon text-icon">L</span>
+                <span>左クリックで国を選択</span>
+            </li>
+            <li>
+                <span class="operation-icon text-icon">L+</span>
+                <span>左ドラッグで地図を回転</span>
+            </li>
+            <li>
+                <span class="operation-icon text-icon">R+</span>
+                <span>右ドラッグで地図を平行移動</span>
+            </li>
+            <li>
+                <span class="operation-icon text-icon">W</span>
+                <span>ホイールでズーム</span>
+            </li>
+            <li>
+                <span class="operation-icon image-icon"><img src="./icon/lat.png" alt="" /></span>
+                <span>その国の重心に緯度を合わせる</span>
+            </li>
+            <li>
+                <span class="operation-icon image-icon"><img src="./icon/lng.png" alt="" /></span>
+                <span>その国の重心に経度を合わせる</span>
+            </li>
+        </ul>
+
+        <h3>バッファの計算方法</h3>
+        <p>選択した国のジオメトリに対して指定距離のバッファを生成します。</p>
+        <p>バッファ距離を変更したい場合は、対象の国を削除してから再選択してください。</p>
+    </aside>
+
+  <script nomodule>!function(){var e=document,t=e.createElement("script");if(!("noModule"in t)&&"onbeforeload"in t){var n=!1;e.addEventListener("beforeload",(function(e){if(e.target===t)n=!0;else if(!e.target.hasAttribute("nomodule")||!n)return;e.preventDefault()}),!0),t.type="module",t.src=".",e.head.appendChild(t),t.remove()}}();</script>
+  <script nomodule crossorigin id="vite-legacy-polyfill" src="./assets/polyfills-legacy-BL4XWPjU.js"></script>
+  <script nomodule crossorigin id="vite-legacy-entry" data-src="./assets/index-legacy-D5oRL6w_.js">System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))</script>
+</body>
+</html>
