@@ -2,6 +2,8 @@
 
 地図上の国をクリックして選択し、turf.buffer() でバッファを生成・描画するツール。
 
+https://shimizu.github.io/geo_buffer_export/
+
 ## 機能
 
 - 国クリックで選択・ハイライト表示
